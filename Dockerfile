@@ -1,37 +1,41 @@
-# Use official PHP image with Apache as base image
-FROM php:8.1-apache-slim
+# Use a valid PHP + Apache image
+FROM php:8.1-apache
 
-# Install system dependencies and PHP extensions required for Laravel
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     libpng-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     libfreetype6-dev \
     libzip-dev \
-    git \
+    zip \
     unzip \
+    git \
+    curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql zip
+    && docker-php-ext-install pdo pdo_mysql zip gd
 
-# Enable Apache mod_rewrite for Laravel
+# Enable Apache mod_rewrite for Laravel routing
 RUN a2enmod rewrite
 
-# Set the working directory inside the container
+# Set working directory inside the container
 WORKDIR /var/www/html
 
-# Copy your Laravel project files into the container
+# Copy Laravel project files into the container
 COPY . .
 
 # Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN curl -sS https://getcomposer.org/installer | php \
+    && mv composer.phar /usr/local/bin/composer
 
 # Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set proper permissions for storage and bootstrap/cache directories
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Set correct permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage
 
-# Expose the port Laravel will run on
+# Expose port 80
 EXPOSE 80
 
-# Set the command to run Apache in the background
+# Start Apache
 CMD ["apache2-foreground"]
