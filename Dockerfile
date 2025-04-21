@@ -35,6 +35,9 @@ ENV COMPOSER_MEMORY_LIMIT=-1
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --verbose
 
+# Clear and cache Laravel configurations
+RUN php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan view:clear && php artisan config:cache
+
 # Expose port 80
 EXPOSE 80
 
