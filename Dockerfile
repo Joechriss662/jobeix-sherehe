@@ -22,13 +22,6 @@ COPY . /var/www
 RUN rm -rf /var/www/html \
     && ln -s /var/www/public /var/www/html
 
-    
-RUN php artisan config:clear && \
-    php artisan cache:clear && \
-    php artisan view:clear && \
-    php artisan route:clear
-
-
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -42,8 +35,13 @@ ENV COMPOSER_MEMORY_LIMIT=-1
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --verbose
 
-# Clear and cache Laravel configurations
-RUN php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan view:clear && php artisan config:cache
+# Clear and cache Laravel configurations AFTER Composer install
+RUN php artisan config:clear && \
+    php artisan cache:clear && \
+    php artisan view:clear && \
+    php artisan route:clear && \
+    php artisan config:cache && \
+    php artisan view:cache
 
 # Expose port 80
 EXPOSE 80
