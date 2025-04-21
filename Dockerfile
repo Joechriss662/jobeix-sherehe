@@ -2,16 +2,8 @@ FROM php:8.1-apache
 
 # Install system packages and PHP extensions
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    zip \
-    unzip \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
+    git curl zip unzip \
+    libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql zip gd
 
@@ -19,22 +11,26 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite
 
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR /var/www
 
-# Copy composer and install dependencies
+# Copy Laravel files
+COPY . /var/www
+
+# Fix Apache root to serve from Laravel public/
+RUN rm -rf /var/www/html \
+    && ln -s /var/www/public /var/www/html
+
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copy project files
-COPY . .
+# Set permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage
 
-# Set correct permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage
+# Install dependencies
+RUN composer install --no-interaction --optimize-autoloader
 
-# Install dependencies (tolerant if composer.lock isn't there)
-RUN composer install --no-interaction --no-scripts --optimize-autoloader || true
-
-# Expose port 80
+# Expose port
 EXPOSE 80
 
 CMD ["apache2-foreground"]
