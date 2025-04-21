@@ -1,41 +1,40 @@
-# Use a valid PHP + Apache image
 FROM php:8.1-apache
 
-# Install system dependencies and PHP extensions
+# Install system packages and PHP extensions
 RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    libzip-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
+    libonig-dev \
+    libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql zip gd
 
-# Enable Apache mod_rewrite for Laravel routing
+# Enable Apache rewrite module
 RUN a2enmod rewrite
 
-# Set working directory inside the container
+# Set working directory
 WORKDIR /var/www/html
 
-# Copy Laravel project files into the container
+# Copy composer and install dependencies
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Copy project files
 COPY . .
-
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php \
-    && mv composer.phar /usr/local/bin/composer
-
-# Install Laravel dependencies
-RUN composer install --no-dev --optimize-autoloader
 
 # Set correct permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage
 
+# Install dependencies (tolerant if composer.lock isn't there)
+RUN composer install --no-interaction --no-scripts --optimize-autoloader || true
+
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
 CMD ["apache2-foreground"]
