@@ -22,6 +22,13 @@ COPY . /var/www
 RUN rm -rf /var/www/html \
     && ln -s /var/www/public /var/www/html
 
+    
+RUN php artisan config:clear && \
+    php artisan cache:clear && \
+    php artisan view:clear && \
+    php artisan route:clear
+
+
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
