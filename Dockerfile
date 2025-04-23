@@ -1,4 +1,5 @@
-FROM php:8.1-apache
+# Use the official PHP image with Apache
+FROM php:8.2-apache
 
 # Install system packages and PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -8,6 +9,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd mbstring bcmath intl opcache \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
 
 # Enable Apache rewrite module
 RUN a2enmod rewrite
@@ -34,6 +39,10 @@ ENV COMPOSER_MEMORY_LIMIT=-1
 
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --verbose
+
+# Install NPM dependencies
+WORKDIR /var/www
+RUN npm install
 
 # Clear and cache Laravel configurations AFTER Composer install
 RUN php artisan config:clear && \
