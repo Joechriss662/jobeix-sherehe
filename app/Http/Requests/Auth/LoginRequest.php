@@ -27,7 +27,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'identifier' => ['required', 'string'], // Identifier can be email, phone, or username
             'password' => ['required', 'string'],
         ];
     }
@@ -41,15 +41,40 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Determine the field to use for authentication
+        $credentials = $this->getCredentials();
+
+        // Attempt to authenticate the user
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'identifier' => trans('auth.failed'),
             ]);
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Get the login credentials based on the identifier.
+     */
+    protected function getCredentials(): array
+    {
+        $identifier = $this->input('identifier');
+
+        // Check if the identifier is an email
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            return ['email' => $identifier, 'password' => $this->input('password')];
+        }
+
+        // Check if the identifier is a phone number
+        if (preg_match('/^\+?[0-9]{10,15}$/', $identifier)) {
+            return ['phone' => $identifier, 'password' => $this->input('password')];
+        }
+
+        // Otherwise, assume the identifier is a username
+        return ['name' => $identifier, 'password' => $this->input('password')];
     }
 
     /**
@@ -68,7 +93,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'identifier' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -80,6 +105,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string('identifier')).'|'.$this->ip());
     }
 }

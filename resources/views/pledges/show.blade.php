@@ -7,9 +7,8 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Pledge Details</h5>
                 <div>
-                    <a href="{{ route('pledges.edit', $pledge) }}" class="btn btn-sm btn-warning">Edit</a>
-                    <a href="{{ route('pledges.contributions.create', $pledge) }}" class="btn btn-sm btn-success">Add Contribution</a>
-                    <a href="{{ route('events.show', $pledge->event->id) }}" class="btn btn-primary btn-sm">Back to Event</a>
+                    <a href="{{ route('pledges.edit', $pledge) }}" class="btn btn-sm btn-warning">Edit Pledge</a>
+                    <a href="{{ route('pledges.index') }}" class="btn btn-sm btn-secondary">Back to Pledges</a>
                 </div>
             </div>
             <div class="card-body">
@@ -20,7 +19,7 @@
                         <p><strong>Type:</strong> {{ ucfirst($pledge->type) }}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Amount:</strong> ${{ number_format($pledge->amount, 2) }}</p>
+                        <p><strong>Amount:</strong> Tsh {{ number_format($pledge->amount, 2) }}</p>
                         <p><strong>Status:</strong>
                             <span class="badge bg-{{ [
                                 'pending' => 'warning',
@@ -43,9 +42,11 @@
             </div>
         </div>
 
+        <!-- Contributions Section -->
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5>Contributions</h5>
+                <a href="{{ route('pledges.contributions.create', $pledge) }}" class="btn btn-sm btn-success">Add Contribution</a>
             </div>
             <div class="card-body">
                 @if($pledge->contributions->isEmpty())
@@ -67,7 +68,7 @@
                                 @foreach($pledge->contributions as $contribution)
                                 <tr>
                                     <td>{{ $contribution->payment_date ? $contribution->payment_date->format('M d, Y') : 'N/A' }}</td>
-                                    <td>${{ number_format($contribution->amount, 2) }}</td>
+                                    <td>Tsh {{ number_format($contribution->amount, 2) }}</td>
                                     <td>{{ ucfirst(str_replace('_', ' ', $contribution->method)) }}</td>
                                     <td>{{ $contribution->transaction_reference ?? 'N/A' }}</td>
                                     <td>
@@ -78,7 +79,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <a href="{{ route('pledges.contributions.edit',[$pledge->id, $contribution->id]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="{{ route('pledges.contributions.edit', [$pledge->id, $contribution->id]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <form action="{{ route('pledges.contributions.destroy', [$pledge->id, $contribution->id]) }}" method="POST" style="display:inline;">
                                             @csrf
                                             @method('DELETE')
@@ -139,4 +140,4 @@
         </div>
     </div>
 </div>
-@endsection 
+@endsection

@@ -3,12 +3,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 
 class Invitation extends Model
 {
-    use HasFactory;
+    use HasFactory,HasUuids;
 
-    protected $fillable = ['event_id', 'guest_id', 'status', 'sent_at'];
+    protected $fillable = [
+        'event_id', 
+        'guest_id',
+        'code', 
+        'status', 
+        'sent_at'];
 
     public function event()
     {

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pledges', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('event_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('guest_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary(); // Use UUID for primary key
+            $table->uuid('event_id'); // Foreign key to events table
+            $table->uuid('guest_id'); // Foreign key to guests table
             $table->enum('type', ['cash', 'bank_transfer', 'service', 'gift']);
             $table->decimal('amount', 12, 2);
             $table->string('description')->nullable();
@@ -25,6 +25,10 @@ return new class extends Migration
             $table->string('recurrence_frequency')->nullable();
             $table->text('admin_notes')->nullable();
             $table->timestamps();
+
+            // Foreign key constraints
+            $table->foreign('event_id')->references('id')->on('events')->onDelete('cascade');
+            $table->foreign('guest_id')->references('id')->on('guests')->onDelete('cascade');
         });
     }
 

@@ -17,7 +17,6 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Guest</th>
                         <th>Event</th>
                         <th>Amount</th>
@@ -29,7 +28,7 @@
                 <tbody>
                     @foreach($pledges as $pledge)
                     <tr>
-                        <td>{{ $pledge->id }}</td>
+                        
                         <td>{{ $pledge->guest->name }}</td>
                         <td>{{ $pledge->event->name }}</td>
                         <td>${{ number_format($pledge->amount, 2) }}</td>
@@ -47,11 +46,11 @@
                         <td>
                             <a href="{{ route('pledges.show', $pledge) }}" class="btn btn-sm btn-info">View</a>
                             <a href="{{ route('pledges.edit', $pledge) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('pledges.destroy', $pledge) }}" method="POST" style="display:inline;">
+                          <!--  <form action="{{ route('pledges.destroy', $pledge) }}" method="POST" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this pledge?');">Delete</button>
-                            </form>
+                            </form>-->
                         </td>
                     </tr>
                     @endforeach

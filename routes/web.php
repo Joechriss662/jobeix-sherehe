@@ -9,6 +9,8 @@ use App\Http\Controllers\PledgeController;
 use App\Http\Controllers\ContributionController;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Auth\ForgotPasswordPhoneController;
 
 // Home route
 Route::get('/', function () {
@@ -28,16 +30,19 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Resource routes
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('events', EventController::class);
     Route::resource('invitations', InvitationController::class);
     Route::resource('guests', GuestController::class);
     Route::resource('pledges', PledgeController::class);
+    Route::resource('contributions', ContributionController::class);
 
     // Resource route for contributions under pledges
     Route::resource('pledges.contributions', ContributionController::class);
 
     // Route to get guests for a specific event
     Route::get('/events/{event}/guests', [EventController::class, 'getGuests']);
+    Route::get('/events/{event}/guests', [EventController::class, 'guests']);
 
     // Routes for invitation SMS preview and sending
     Route::get('/invitations/preview-sms/{id}', [InvitationController::class, 'previewSms'])->name('invitations.previewSms');
@@ -89,5 +94,26 @@ Route::post('/store-smsforwarder-address', function (Request $request) {
     return response()->json(['success' => true, 'message' => 'SMSForwarder address stored successfully.']);
 })->name('storeSmsForwarderAddress');
 
+Route::middleware(['role:admin'])->group(function () {
+    // User management, system config, etc.
+    Route::get('/users', [\App\Http\Controllers\UserManagementController::class, 'index'])->name('users.index');
+    Route::post('/users/{user}/role', [\App\Http\Controllers\UserManagementController::class, 'updateRole'])->name('users.updateRole');
+});
+
+Route::middleware(['role:event_organizer'])->group(function () {
+    // Event/invitation management
+});
+
 // Authentication routes
 require __DIR__.'/auth.php';
+
+Route::get('forgot-password-phone', [ForgotPasswordPhoneController::class, 'showLinkRequestForm'])->name('password.phone.request');
+Route::post('forgot-password-phone', [ForgotPasswordPhoneController::class, 'sendResetLinkPhone'])->name('password.phone.email');
+Route::get('reset-password-phone/{token}', [ForgotPasswordPhoneController::class, 'showResetForm'])->name('password.phone.reset');
+Route::post('reset-password-phone', [ForgotPasswordPhoneController::class, 'reset'])->name('password.phone.update');
+
+Route::get('contributions', [ContributionController::class, 'index'])->name('contributions.index');
+
+// New route for independent guest creation
+Route::get('guests/create-independent', [GuestController::class, 'createIndependent'])->name('guests.create-independent');
+Route::post('guests/store-independent', [GuestController::class, 'storeIndependent'])->name('guests.store-independent');

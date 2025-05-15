@@ -6,6 +6,7 @@ use App\Models\Pledge;
 use App\Models\Event;
 use App\Models\Guest;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class PledgeController extends Controller
 {
@@ -45,6 +46,37 @@ class PledgeController extends Controller
             'is_recurring' => 'sometimes|boolean',
             'recurrence_frequency' => 'nullable|required_if:is_recurring,true|in:weekly,monthly',
         ]);
+
+        // Check if the guest already has a pledge for this event
+        $existingPledge = \App\Models\Pledge::where('event_id', $validated['event_id'])
+            ->where('guest_id', $validated['guest_id'])
+            ->first();
+
+        if ($existingPledge) {
+            return back()
+                ->withInput()
+                ->withErrors(['guest_id' => 'This guest already has a pledge for the selected event.']);
+        }
+
+        // If deadline is not set, calculate it as 1 week before the event date
+        if (empty($validated['deadline'])) {
+            $event = \App\Models\Event::find($validated['event_id']);
+            if ($event && $event->date) {
+                $validated['deadline'] = \Carbon\Carbon::parse($event->date)->subWeek()->format('Y-m-d');
+            }
+        }
+
+        $event = \App\Models\Event::find($validated['event_id']);
+        if ($event && !empty($validated['deadline'])) {
+            $eventDate = \Carbon\Carbon::parse($event->date);
+            $deadline = \Carbon\Carbon::parse($validated['deadline']);
+            $maxDeadline = $eventDate->copy()->subWeek();
+            if ($deadline->gt($maxDeadline)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['deadline' => 'Deadline must not be later than one week before the event date ('.$maxDeadline->format('Y-m-d').').']);
+            }
+        }
 
         try {
             $pledge = Pledge::create(array_merge($validated, [
@@ -104,11 +136,19 @@ class PledgeController extends Controller
             'recurrence_frequency' => 'nullable|in:weekly,monthly',
             'admin_notes' => 'nullable|string',
         ]);
-    
+
+        // If deadline is not set, calculate it as 1 week before the event date
+        if (empty($validated['deadline'])) {
+            $event = \App\Models\Event::find($validated['event_id']);
+            if ($event && $event->date) {
+                $validated['deadline'] = \Carbon\Carbon::parse($event->date)->subWeek()->format('Y-m-d');
+            }
+        }
+
         try {
             // Calculate total contributions
             $totalContributions = $pledge->contributions()->sum('amount');
-    
+
             // Update status based on contributions
             if ($totalContributions >= $pledge->amount) {
                 $pledge->status = 'fulfilled';
@@ -117,10 +157,10 @@ class PledgeController extends Controller
             } else {
                 $pledge->status = 'pending';
             }
-    
+
             // Update the pledge with the validated data
             $pledge->update($validated);
-    
+
             return redirect()
                 ->route('pledges.show', $pledge)
                 ->with('success', 'Pledge updated successfully!');
@@ -136,9 +176,9 @@ class PledgeController extends Controller
      * Remove the specified pledge.
      */
     public function destroy(Pledge $pledge)
-{
-    $pledge->delete();
-    session()->flash('success', 'Pledge deleted successfully!');
-    return redirect()->route('pledges.index');
-}
+    {
+        $pledge->delete();
+        session()->flash('success', 'Pledge deleted successfully!');
+        return redirect()->route('pledges.index');
+    }
 }

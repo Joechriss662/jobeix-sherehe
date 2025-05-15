@@ -11,17 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('invitations', function (Blueprint $table) {
+        Schema::create('guests', function (Blueprint $table) {
             $table->uuid('id')->primary(); // Use UUID for primary key
+            $table->string('name');
+            $table->string('phone')->unique();
+            $table->string('email')->nullable();
             $table->uuid('event_id'); // Foreign key to events table
-            $table->uuid('guest_id'); // Foreign key to guests table
-            $table->string('status')->default('pending'); // pending, accepted, declined
-            $table->timestamp('sent_at')->nullable();
             $table->timestamps();
 
-            // Foreign key constraints
+            // Foreign key constraint
             $table->foreign('event_id')->references('id')->on('events')->onDelete('cascade');
-            $table->foreign('guest_id')->references('id')->on('guests')->onDelete('cascade');
         });
     }
 
@@ -30,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('invitations');
+        Schema::dropIfExists('guests');
     }
 };

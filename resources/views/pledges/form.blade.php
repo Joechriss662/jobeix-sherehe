@@ -9,16 +9,23 @@
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="event_id" class="form-label">Event</label>
-                    <select class="form-select" id="event_id" name="event_id" required>
-                        <option value="">Select Event</option>
+                    <label for="event_id" class="form-label">Event <span class="text-danger">*</span></label>
+                    <select class="form-select @error('event_id') is-invalid @enderror"
+                            id="event_id"
+                            name="event_id"
+                            required>
+                        <option value="">-- Select Event --</option>
                         @foreach($events as $event)
-                            <option value="{{ $event->id }}" 
-                                {{ (isset($pledge) && $pledge->event_id == $event->id) ? 'selected' : '' }}>
-                                {{ $event->name }}
+                            <option value="{{ $event->id }}"
+                                data-event-date="{{ $event->date }}"
+                                {{ old('event_id', isset($pledge) ? $pledge->event_id : '') == $event->id ? 'selected' : '' }}>
+                                {{ $event->name }} ({{ $event->date }})
                             </option>
                         @endforeach
                     </select>
+                    @error('event_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-6">
                     <label for="guest_id" class="form-label">Guest</label>
@@ -59,8 +66,30 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="deadline" class="form-label">Deadline</label>
-                    <input type="date" class="form-control" id="deadline" name="deadline" 
-                           value="{{ isset($pledge) ? $pledge->deadline->format('Y-m-d') : old('deadline') }}">
+                    <input type="date"
+                           class="form-control @error('deadline') is-invalid @enderror"
+                           id="deadline"
+                           name="deadline"
+                           value="{{ old('deadline', isset($pledge) && $pledge->deadline ? $pledge->deadline->format('Y-m-d') : '') }}">
+                    @error('deadline')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    @php
+                        $selectedEvent = null;
+                        if(old('event_id')) {
+                            $selectedEvent = $events->find(old('event_id'));
+                        } elseif(isset($pledge)) {
+                            $selectedEvent = $events->find($pledge->event_id);
+                        }
+                        $maxDeadline = $selectedEvent && $selectedEvent->date
+                            ? \Carbon\Carbon::parse($selectedEvent->date)->subWeek()->format('Y-m-d')
+                            : null;
+                    @endphp
+                    @if($maxDeadline)
+                        <small class="form-text text-muted">
+                            Deadline must be on or before <strong>{{ $maxDeadline }}</strong> (one week before event date).
+                        </small>
+                    @endif
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Options</label>

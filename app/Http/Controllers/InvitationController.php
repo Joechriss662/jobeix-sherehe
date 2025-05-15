@@ -43,11 +43,39 @@ class InvitationController extends Controller
             return response()->json(['error' => 'Invitation already exists for this guest and event.'], 400);
         }
 
+        $event = Event::find($request->event_id);
+        if (!$event) {
+            return response()->json(['error' => 'Event not found.'], 404);
+        }
+
         try {
+            // Generate a unique invitation code
+            $generatedCode = null;
+            $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $event->name), 0, 3));
+            if (strlen($prefix) < 3) { 
+                $prefix = str_pad($prefix, 3, 'X'); 
+            }
+            if (empty($prefix)) {
+                $prefix = "EVT"; 
+            }
+
+            $allowedChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+            $randomLength = 4;
+
+            do {
+                $randomPart = '';
+                for ($i = 0; $i < $randomLength; $i++) {
+                    $randomPart .= $allowedChars[random_int(0, strlen($allowedChars) - 1)];
+                }
+                $generatedCode = $prefix . $randomPart;
+                $existingCode = Invitation::where('code', $generatedCode)->first();
+            } while ($existingCode);
+
             // Create the invitation
             $invitation = Invitation::create([
                 'guest_id' => $request->guest_id,
                 'event_id' => $request->event_id,
+                'code' => $generatedCode, // Store the generated code
                 'status' => 'pending', // Default status
             ]);
 
@@ -98,15 +126,24 @@ class InvitationController extends Controller
 
         $eventDate = \Carbon\Carbon::parse($invitation->event->start_time);
 
-        $message = "Mpendwa {$invitation->guest->name},\n\n" .
-                   "Unakaribishwa kwenye *{$invitation->event->name}* tarehe {$eventDate->format('d/m/Y')} katika *{$invitation->event->location}*.\n\n" .
-                   "Tafadhali changia kufanikisha tukio hili kabla ya *25/07/2025*.\n\n" .
-                   "*Malipo:* \n" .
-                   "M-PESA: 0769 249 xxx\n" .
-                   "TIGO PESA: 0718 003 xxx\n" .
-                   "CRDB: 0152742041xxx (Eliamani E. Mbwambo)\n\n" .
-                   "Tunathamini mchango wako. Karibu kwa moyo mkunjufu!\n\n" .
-                   "*Eliamani E. Mbwambo*";
+        // Professional and user-friendly SMS message
+        $message = "Habari {$invitation->guest->name},\n\n" .
+                   "Umealikwa rasmi kwenye tukio la: *{$invitation->event->name}*.\n" .
+                   "Tarehe: *{$eventDate->format('D, M d, Y')}* \nSaa: *{$eventDate->format('h:i A')}*\n" .
+                   "Mahali: *{$invitation->event->location}*.\n\n" .
+                   "Namba yako ya Mwaliko: *{$invitation->code}*.\n" .
+                   "Tafadhali itunze kwa ajili ya uthibitisho au kujibu mwaliko.\n\n";
+
+        // Optional: Contribution details. Consider if this is always needed in the first SMS.
+        // For some events, this might be better placed on an RSVP confirmation page or a follow-up.
+        $message .= "Mchango wako ni muhimu katika kufanikisha tukio hili. Unaweza kuchangia kupitia:\n" .
+                    "- M-PESA: 0769 249 xxx\n" .
+                    "- TIGO PESA: 0718 003 xxx\n" .
+                    "- CRDB: 0152742041xxx (Jina: Eliamani E. Mbwambo)\n" .
+                    "Tafadhali changia kabla ya *25/07/2025*.\n\n";
+
+        $message .= "Tunatarajia ushiriki wako!\n" .
+                    "Kwa niaba ya: *" . (isset($invitation->event->organizer->name) ? $invitation->event->organizer->name : 'Waandalizi wa Tukio') . "*";
 
         return response()->json(['message' => $message]);
     }

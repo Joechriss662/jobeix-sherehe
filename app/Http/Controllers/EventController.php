@@ -128,4 +128,20 @@ class EventController extends Controller
         $activeEvents = Event::active()->upcoming()->get();
         return response()->json($activeEvents);
     }
+
+    public function guests($eventId)
+    {
+        $event = \App\Models\Event::with('guests')->find($eventId);
+        if (!$event) {
+            return response()->json(['guests' => []]);
+        }
+        return response()->json([
+            'guests' => $event->guests->map(function($guest) {
+                return [
+                    'id' => $guest->id,
+                    'name' => $guest->name,
+                ];
+            }),
+        ]);
+    }
 }

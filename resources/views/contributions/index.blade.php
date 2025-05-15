@@ -1,48 +1,49 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h2>Contributions for Pledge #{{ $pledge->id }}</h2>
-
-    <a href="{{ route('pledges.contributions.create', $pledge) }}" class="btn btn-primary mb-3">Add Contribution</a>
-
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+<div class="container py-5">
+    @if(isset($events))
+        <!-- Event Selection -->
+        <h4 class="mb-4 text-center">{{ __('Select Event') }}</h4>
+        <form method="GET" action="{{ route('contributions.index') }}">
+            <div class="mb-3">
+                <label for="event" class="form-label">{{ __('Event') }}</label>
+                <select id="event" name="event" class="form-select" required>
+                    <option value="">{{ __('-- Select Event --') }}</option>
+                    @foreach($events as $event)
+                        <option value="{{ $event->id }}">{{ $event->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">{{ __('View Contributions') }}</button>
+        </form>
+    @elseif(isset($contributions))
+        <!-- Contributions Listing -->
+        <h4 class="mb-4 text-center">{{ __('Contributions for Event: ') . $event->name }}</h4>
+        @if($contributions->isEmpty())
+            <p class="text-center">{{ __('No contributions found for this event.') }}</p>
+        @else
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>{{ __('Contributor Name') }}</th>
+                        <th>{{ __('Amount') }}</th>
+                        <th>{{ __('Date') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($contributions as $contribution)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $contribution->contributor_name }}</td>
+                            <td>{{ $contribution->amount }}</td>
+                            <td>{{ $contribution->created_at->format('Y-m-d') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
     @endif
-
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Transaction Ref</th>
-                <th>Receipt</th>
-                <th>Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($contributions as $contribution)
-                <tr>
-                    <td>${{ number_format($contribution->amount, 2) }}</td>
-                    <td>{{ $contribution->method }}</td>
-                    <td>{{ $contribution->transaction_reference }}</td>
-                    <td>
-                        @if($contribution->receipt_path)
-                            <a href="{{ asset('storage/' . $contribution->receipt_path) }}" target="_blank">View</a>
-                        @endif
-                    </td>
-                    <td>{{ $contribution->payment_date->format('Y-m-d') }}</td>
-                    <td>
-                        <a href="{{ route('pledges.contributions.edit', [$pledge, $contribution]) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <form action="{{ route('pledges.contributions.destroy', [$pledge, $contribution]) }}" method="POST" style="display:inline-block;">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this contribution?')">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
 </div>
 @endsection

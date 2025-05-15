@@ -10,50 +10,46 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd mbstring bcmath intl opcache \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
-
 # Enable Apache rewrite module
 RUN a2enmod rewrite
+
+# Install Node.js (for Laravel Mix/Vite)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy Laravel files
-COPY . /var/www
+# Copy Laravel app files
+COPY . .
 
-# Fix Apache root to serve from Laravel public/
-RUN rm -rf /var/www/html \
-    && ln -s /var/www/public /var/www/html
+# Copy Apache configuration to serve Laravel from /public
+COPY apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Install Composer
+# Point Apache root to Laravel's public folder
+RUN rm -rf /var/www/html && ln -s /var/www/public /var/www/html
+
+# Install Composer (copy from official composer image)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set permissions
+# Set correct permissions
 RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage /var/www/bootstrap/cache
+    && chmod -R 755 storage bootstrap/cache
 
 # Set Composer memory limit
 ENV COMPOSER_MEMORY_LIMIT=-1
 
-# Install dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --verbose
+# Set Git safe directory to avoid "dubious ownership" error
+RUN git config --global --add safe.directory /var/www
 
-# Install NPM dependencies
-WORKDIR /var/www
-RUN npm install
 
-# Clear and cache Laravel configurations AFTER Composer install
-RUN php artisan config:clear && \
-    php artisan cache:clear && \
-    php artisan view:clear && \
-    php artisan route:clear && \
-    php artisan config:cache && \
-    php artisan view:cache
+# Install PHP and JavaScript dependencies
+RUN composer install --no-interaction --optimize-autoloader
+RUN npm install && npm run build
 
-# Expose port 80
+
+# Expose Apache port
 EXPOSE 80
 
-# Start Apache
+# Start Apache server
 CMD ["apache2-foreground"]

@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contribution', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('pledge_id')->constrained()->cascadeOnDelete();
+        Schema::create('contributions', function (Blueprint $table) {
+            $table->uuid('id')->primary(); // Use UUID for primary key
+            $table->uuid('pledge_id'); // Foreign key to pledges table
             $table->decimal('amount', 12, 2);
             $table->enum('method', ['cash', 'bank_transfer', 'mobile_money', 'other']);
             $table->string('transaction_reference')->nullable();
@@ -22,6 +22,9 @@ return new class extends Migration
             $table->date('payment_date')->default(now());
             $table->text('notes')->nullable();
             $table->timestamps();
+
+            // Foreign key constraint
+            $table->foreign('pledge_id')->references('id')->on('pledges')->onDelete('cascade');
         });
     }
 
@@ -30,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contribution');
+        Schema::dropIfExists('contributions');
     }
 };

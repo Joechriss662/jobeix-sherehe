@@ -37,38 +37,42 @@
                 @csrf
                 @method('PUT')
 
+                {{-- Event --}}
                 <div class="mb-3">
-                    <label for="guest_name" class="form-label fw-bold">Guest Name</label>
-                    <input type="text" name="guest_name" id="guest_name" class="form-control" value="{{ old('guest_name', $invitation->guest->name) }}" required placeholder="Enter guest name">
+                    <label class="form-label">{{ __('Event') }}</label>
+                    <input type="text" class="form-control" value="{{ $invitation->event->name }}" disabled>
                 </div>
 
+                {{-- Guest --}}
                 <div class="mb-3">
-                    <label for="guest_phone" class="form-label fw-bold">Guest Phone</label>
-                    <input type="tel" name="guest_phone" id="guest_phone" class="form-control" value="{{ old('guest_phone', $invitation->guest->phone) }}" required placeholder="Enter guest phone number">
+                    <label class="form-label">{{ __('Guest') }}</label>
+                    <input type="text" class="form-control" value="{{ $invitation->guest->name }}" disabled>
                 </div>
 
+                {{-- Invitation Code --}}
                 <div class="mb-3">
-                    <label for="event_id" class="form-label fw-bold">Select Event</label>
-                    <select name="event_id" id="event_id" class="form-control">
-                        @foreach($events as $event)
-                            <option value="{{ $event->id }}" {{ $event->id == $invitation->event_id ? 'selected' : '' }}>
-                                {{ $event->name }}
-                            </option>
-                        @endforeach
+                    <label class="form-label">{{ __('Invitation Code') }}</label>
+                    <input type="text" class="form-control" value="{{ $invitation->code }}" disabled>
+                </div>
+
+                {{-- Status --}}
+                <div class="mb-3">
+                    <label for="status" class="form-label">{{ __('Status') }}</label>
+                    <select name="status" id="status" class="form-select" required>
+                        <option value="pending" {{ $invitation->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="accepted" {{ $invitation->status == 'accepted' ? 'selected' : '' }}>Accepted</option>
+                        <option value="declined" {{ $invitation->status == 'declined' ? 'selected' : '' }}>Declined</option>
                     </select>
                 </div>
 
-                <div class="mb-3">
-                    <label for="rsvp_status" class="form-label fw-bold">RSVP Status</label>
-                    <select name="rsvp_status" id="rsvp_status" class="form-control">
-                        <option value="pending" {{ $invitation->rsvp_status == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="accepted" {{ $invitation->rsvp_status == 'accepted' ? 'selected' : '' }}>Accepted</option>
-                        <option value="declined" {{ $invitation->rsvp_status == 'declined' ? 'selected' : '' }}>Declined</option>
-                    </select>
+                <div class="d-flex justify-content-between">
+                    <a href="{{ route('invitations.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Update Invitation
+                    </button>
                 </div>
-
-                <button type="submit" class="btn btn-success">Update Invitation</button>
-                <a href="{{ route('invitations.index') }}" class="btn btn-secondary">Cancel</a>
             </form>
         </div>
     </div>

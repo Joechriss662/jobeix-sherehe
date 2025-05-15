@@ -4,20 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\Pledge;
 use App\Models\Contribution;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 
 class ContributionController extends Controller
 {
-    // Display a listing of contributions for a specific pledge
-    public function index(Pledge $pledge)
+    // Show contributions or event selection
+    public function index(Request $request)
     {
-        $contributions = $pledge->contributions()->get();
-        return view('contributions.index', compact('pledge', 'contributions'));
+        // Check if an event is selected
+        if ($request->has('event')) {
+            $event = Event::findOrFail($request->event); // Retrieve the selected event
+            $contributions = Contribution::where('event_id', $event->id)->get(); // Filter contributions by event
+            return view('contributions.index', compact('contributions', 'event'));
+        }
+
+        // If no event is selected, show the event selection dropdown
+        $events = Event::all(); // Retrieve all events
+        return view('contributions.index', compact('events'));
     }
 
-    // Show the form for creating a new contribution
+    // Show the form for creating a new contribution for a pledge
     public function create(Pledge $pledge)
     {
         return view('contributions.create', compact('pledge'));
@@ -51,25 +60,25 @@ class ContributionController extends Controller
 
         $contribution->save();
 
-        //pledge status
+        // Update pledge status
         $pledge->updateStatus();
 
         return redirect()->route('pledges.show', $pledge)->with('success', 'Contribution added successfully!');
     }
 
-    // Display the specified contribution
+    // Display a specific contribution (optional, can be removed if not needed)
     public function show(Pledge $pledge, Contribution $contribution)
     {
         return view('contributions.show', compact('pledge', 'contribution'));
     }
 
-    // Show the form for editing the specified contribution
+    // Show the form for editing a contribution
     public function edit(Pledge $pledge, Contribution $contribution)
     {
         return view('contributions.edit', compact('pledge', 'contribution'));
     }
 
-    // Update the specified contribution in storage
+    // Update a contribution
     public function update(Request $request, Pledge $pledge, Contribution $contribution)
     {
         $validator = Validator::make($request->all(), [
@@ -98,10 +107,13 @@ class ContributionController extends Controller
 
         $contribution->save();
 
+        // Update pledge status
+        $pledge->updateStatus();
+
         return redirect()->route('pledges.show', $pledge)->with('success', 'Contribution updated successfully!');
     }
 
-    // Remove the specified contribution from storage
+    // Delete a contribution
     public function destroy(Pledge $pledge, Contribution $contribution)
     {
         // Delete the receipt if it exists
@@ -111,14 +123,17 @@ class ContributionController extends Controller
 
         $contribution->delete();
 
+        // Update pledge status
+        $pledge->updateStatus();
+
         return redirect()->route('pledges.show', $pledge)->with('success', 'Contribution deleted successfully!');
     }
 
+    // Generate a unique receipt number
     private function generateReceiptNumber(): string
     {
         $lastReceipt = Contribution::orderBy('id', 'desc')->first();
         $nextNumber = $lastReceipt ? (int) substr($lastReceipt->receipt_number, 4) + 1 : 1; // Assuming "REC" is 3 characters long
         return 'REC-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT); // Format as REC-000001
     }
-
 }

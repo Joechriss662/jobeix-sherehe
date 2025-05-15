@@ -8,6 +8,20 @@ use Illuminate\Http\Request;
 
 class GuestController extends Controller
 {
+    // Show the form for creating a new guest
+    public function create()
+    {
+        // Check if events exist
+        $events = Event::all();
+        if ($events->isEmpty()) {
+            // Redirect to the events page with a message
+            return redirect()->route('events.index')->with('error', 'Please create an event first before adding guests.');
+        }
+
+        // Pass events to the view for selection
+        return view('guests.create', compact('events'));
+    }
+
     // Store a new guest (single input or bulk data)
     public function store(Request $request, Event $event)
     {
@@ -121,5 +135,39 @@ class GuestController extends Controller
         $guests = $selectedEvent ? $selectedEvent->guests : collect(); // Fetch guests for the selected event
 
         return view('guests.index', compact('events', 'selectedEvent', 'guests'));
+    }
+
+    public function edit(Guest $guest)
+    {
+        $events = \App\Models\Event::all();
+        $invitations = \App\Models\Invitation::all(); // Or filter as needed
+        return view('guests.edit', compact('guest', 'events', 'invitations'));
+    }
+
+    // Show the form for creating a guest independently
+    public function createIndependent()
+    {
+        $events = Event::all(); // Retrieve all events
+        if ($events->isEmpty()) {
+            // Redirect to the events page with a message if no events exist
+            return redirect()->route('events.index')->with('error', 'Please create an event first before adding guests.');
+        }
+
+        return view('guests.create-independent', compact('events'));
+    }
+
+    // Store a new guest created independently
+    public function storeIndependent(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|unique:guests,email',
+            'phone' => 'required|string|unique:guests,phone',
+            'event_id' => 'required|exists:events,id', // Ensure the event exists
+        ]);
+
+        Guest::create($request->all());
+
+        return redirect()->route('guests.index')->with('success', 'Guest created successfully!');
     }
 }
